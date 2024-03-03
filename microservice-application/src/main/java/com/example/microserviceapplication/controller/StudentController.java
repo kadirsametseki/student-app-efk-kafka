@@ -4,6 +4,7 @@ import com.example.microserviceapplication.dto.StudentResponse;
 import com.example.microserviceapplication.dto.request.CreateStudentRequest;
 import com.example.microserviceapplication.dto.request.UpdateStudentRequest;
 import com.example.microserviceapplication.service.StudentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ public class StudentController {
     private final StudentService studentService;
 
     @PostMapping
-    public void createStudent(@RequestBody CreateStudentRequest request) {
+    public void createStudent(@RequestBody @Valid CreateStudentRequest request) {
         studentService.createStudent(request);
     }
 
