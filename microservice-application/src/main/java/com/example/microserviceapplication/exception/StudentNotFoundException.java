@@ -1,8 +1,11 @@
 package com.example.microserviceapplication.exception;
 
-public class StudentNotFoundException extends RuntimeException{
 
-    public StudentNotFoundException(String message) {
-        super(message);
+import static com.example.microserviceapplication.exception.ErrorCodes.STUDENT_NOT_FOUND;
+
+public class StudentNotFoundException extends GenericException{
+
+    public StudentNotFoundException() {
+        super(STUDENT_NOT_FOUND.getCode(), STUDENT_NOT_FOUND.getCode(), 404);
     }
 }

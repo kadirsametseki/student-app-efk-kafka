@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateStudentRequest {
-    @NotBlank(message = "Name must not be null")
+    @NotBlank(message = "error.emptyName")
     private String name;
-    @NotBlank(message = "Surname must not be null")
+    @NotBlank(message = "error.emptySurname")
     private String surname;
-    @NotBlank(message = "Group name must not be null")
+    @NotBlank(message = "error.emptyGroupName")
     private String groupName;
 }

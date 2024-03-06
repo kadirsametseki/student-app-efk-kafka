@@ -37,7 +37,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentResponse getStudentById(Long id) {
         var student = studentRepository.findById(id)
-                .orElseThrow(() -> exStudentNotFound(id));
+                .orElseThrow(this::exStudentNotFound);
 
         return studentMapper.mapEntityToResponse(student);
     }
@@ -45,7 +45,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public void updateStudent(Long id, UpdateStudentRequest request) {
         var student = studentRepository.findById(id)
-                .orElseThrow(() -> exStudentNotFound(id));
+                .orElseThrow(this::exStudentNotFound);
 
         studentMapper.mapUpdateRequestToEntity(student, request);
         studentRepository.save(student);
@@ -54,12 +54,12 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public void deleteStudent(Long id) {
         var student = studentRepository.findById(id)
-                .orElseThrow(() -> exStudentNotFound(id));
+                .orElseThrow(this::exStudentNotFound);
         studentRepository.deleteById(student.getId());
     }
 
-    public StudentNotFoundException exStudentNotFound(Long id) {
-        throw new StudentNotFoundException("Student not found by id: " + id);
+    public StudentNotFoundException exStudentNotFound() {
+        throw new StudentNotFoundException();
     }
 
 }

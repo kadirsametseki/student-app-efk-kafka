@@ -1,40 +1,80 @@
 package com.example.microserviceapplication.exception;
 
+import com.example.microserviceapplication.service.TranslationRepoService;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(StudentNotFoundException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ExceptionResponse handleStudentNotFoundException(StudentNotFoundException exception) {
-        return new ExceptionResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage());
+    private final TranslationRepoService translationRepoService;
+
+    @ExceptionHandler(GenericException.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(GenericException exception, WebRequest request) {
+        var path = ((ServletWebRequest) request).getRequest().getRequestURL().toString();
+        return createErrorResponse(exception, path);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(MethodArgumentNotValidException exception) {
-        Map<String, String> errors = new HashMap<>();
-        exception.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        return errors;
+    public ResponseEntity<ErrorResponse> handleGenericException(MethodArgumentNotValidException exception, WebRequest request) {
+        var path = ((ServletWebRequest) request).getRequest().getRequestURL().toString();
+
+        List<String> errors = exception.getBindingResult().getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage).collect(Collectors.toList());
+
+        System.out.println(errors);
+        var build = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .code(Objects.requireNonNull(exception.getFieldError().getCode()))
+                .path(path)
+                .timestamp(OffsetDateTime.now())
+                .detail(translationRepoService.findByKey(errors))
+                .build();
+
+        System.out.println(exception.getFieldError().getCode());
+        return ResponseEntity.badRequest().body(build);
     }
 
     @ExceptionHandler(CallNotPermittedException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ExceptionResponse handleCallNotPermitted(CallNotPermittedException exception) {
-        return new ExceptionResponse(HttpStatus.SERVICE_UNAVAILABLE.value(), exception.getMessage());
+    public ResponseEntity<ErrorResponse> handleCircuit(CallNotPermittedException exception, WebRequest request) {
+        var path = ((ServletWebRequest) request).getRequest().getRequestURL().toString();
+        var build = ErrorResponse.builder()
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .code("SERVICE_UNAVAILABLE")
+                .path(path)
+                .timestamp(OffsetDateTime.now())
+                .detail(translationRepoService.findByKey(List.of(exception.getMessage())))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(build);
+    }
+
+    private ResponseEntity<ErrorResponse> createErrorResponse(GenericException exception, String path) {
+        var build = ErrorResponse.builder()
+                .status(exception.getStatus())
+                .code(exception.getCode())
+                .path(path)
+                .timestamp(OffsetDateTime.now())
+                .detail(translationRepoService.findByKey(List.of(exception.getMessage())))
+                .build();
+
+        return ResponseEntity.status(exception.getStatus()).body(build);
     }
 }
